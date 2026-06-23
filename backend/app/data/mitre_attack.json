@@ -1,0 +1,32 @@
+[
+  {
+    "technique_id": "T1566",
+    "tactic": "Initial Access",
+    "technique": "Phishing",
+    "keywords": ["phishing", "credential theft", "email"]
+  },
+  {
+    "technique_id": "T1190",
+    "tactic": "Initial Access",
+    "technique": "Exploit Public-Facing Application",
+    "keywords": ["cve", "exploit", "rce"]
+  },
+  {
+    "technique_id": "T1078",
+    "tactic": "Persistence",
+    "technique": "Valid Accounts",
+    "keywords": ["credentials", "login", "account"]
+  },
+  {
+    "technique_id": "T1059",
+    "tactic": "Execution",
+    "technique": "Command and Scripting Interpreter",
+    "keywords": ["powershell", "cmd", "script"]
+  },
+  {
+    "technique_id": "T1021",
+    "tactic": "Lateral Movement",
+    "technique": "Remote Services",
+    "keywords": ["rdp", "ssh", "remote"]
+  }
+]

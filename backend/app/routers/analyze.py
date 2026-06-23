@@ -10,6 +10,7 @@ from datetime import datetime
 from app.models.schemas import AnalyzeThreatRequest
 from app.agents.report_writer import ReportWriter
 from app.agents.detection_engineer import DetectionEngineer
+from app.agents.mitre_mapper import MITREMapper
 
 router = APIRouter(prefix="/api", tags=["Analysis"])
 
@@ -18,6 +19,7 @@ enrichment_service = EnrichmentService()
 risk_scorer = RiskScorer()
 report_writer = ReportWriter()
 detection_engineer = DetectionEngineer()
+mitre_mapper = MITREMapper()
 
 @router.post("/extract-iocs", response_model=ExtractIOCResponse)
 async def extract_iocs(request: ExtractIOCRequest):
@@ -83,6 +85,7 @@ async def analyze_threat(request: AnalyzeThreatRequest):
     iocs,
     risk["risk_level"]
     )
+    mitre_mapping = mitre_mapper.map(request.content)
     analysis_id = "TI-" + datetime.utcnow().strftime("%Y%m%d%H%M%S")
 
     return {
@@ -93,6 +96,7 @@ async def analyze_threat(request: AnalyzeThreatRequest):
         "enrichment": {
             "cves": enriched_cves
         },
+        "mitre_mapping": mitre_mapping,
         "risk_score": risk["risk_score"],
         "risk_level": risk["risk_level"],
         "risk_factors": risk["risk_factors"],
