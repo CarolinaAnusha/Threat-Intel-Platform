@@ -1,0 +1,29 @@
+[
+  {
+    "id": "CVE-2023-3519",
+    "cvss": 9.8,
+    "severity": "critical",
+    "description": "Citrix ADC and Gateway Remote Code Execution",
+    "exploit_available": true,
+    "malware_families": ["LockBit"],
+    "threat_actors": ["FIN7"]
+  },
+  {
+    "id": "CVE-2024-21887",
+    "cvss": 8.8,
+    "severity": "high",
+    "description": "Ivanti Connect Secure Command Injection",
+    "exploit_available": true,
+    "malware_families": ["LockBit"],
+    "threat_actors": ["UNC5221"]
+  },
+  {
+    "id": "CVE-2024-53677",
+    "cvss": 6.5,
+    "severity": "medium",
+    "description": "Apache Struts File Upload Vulnerability",
+    "exploit_available": false,
+    "malware_families": [],
+    "threat_actors": []
+  }
+]
