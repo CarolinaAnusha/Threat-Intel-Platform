@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.routers import analyze
 from app.models.database import engine
 from app.models.database import Base
+from app.routers import upload
 
 Base.metadata.create_all(bind=engine)
 app = FastAPI(
@@ -21,6 +22,7 @@ app.add_middleware(
 )
 
 app.include_router(analyze.router)
+app.include_router(upload.router)
 
 
 @app.get("/")
