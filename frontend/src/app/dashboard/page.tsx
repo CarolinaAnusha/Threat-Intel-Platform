@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 
-const API_URL = "http://127.0.0.1:8000";
+const API_URL = "https://threat-intel-platform-cwgw.onrender.com";
 
 const SAMPLE = "A phishing campaign targets finance users. Domain: secure-login-update.com, IP: 185.199.108.153, Exploited Vulnerability: CVE-2023-3519, Goal: Credential Theft";
 
