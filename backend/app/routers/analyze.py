@@ -11,6 +11,17 @@ from app.models.schemas import AnalyzeThreatRequest
 from app.agents.report_writer import ReportWriter
 from app.agents.detection_engineer import DetectionEngineer
 from app.agents.mitre_mapper import MITREMapper
+from fastapi import Depends
+from sqlalchemy.orm import Session
+from app.models.database import SessionLocal
+from app.models.analysis import Analysis
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 router = APIRouter(prefix="/api", tags=["Analysis"])
 
@@ -63,7 +74,7 @@ async def calculate_risk(request: RiskRequest):
     }
 
 @router.post("/analyze")
-async def analyze_threat(request: AnalyzeThreatRequest):
+async def analyze_threat(request: AnalyzeThreatRequest, db: Session = Depends(get_db)):
     iocs = extractor.extract(request.content)
 
     enriched_cves = []
@@ -88,13 +99,13 @@ async def analyze_threat(request: AnalyzeThreatRequest):
     mitre_mapping = mitre_mapper.map(request.content)
     analysis_id = "TI-" + datetime.utcnow().strftime("%Y%m%d%H%M%S")
 
-    return {
+    response = {
         "analysis_id": analysis_id,
         "timestamp": datetime.utcnow().isoformat() + "Z",
         "input_type": request.input_type,
         "iocs": iocs,
         "enrichment": {
-            "cves": enriched_cves
+        "cves": enriched_cves
         },
         "mitre_mapping": mitre_mapping,
         "risk_score": risk["risk_score"],
@@ -102,4 +113,56 @@ async def analyze_threat(request: AnalyzeThreatRequest):
         "risk_factors": risk["risk_factors"],
         "ai_report": ai_report,
         "detection_rules": detection_rules
+    }
+
+    analysis_record = Analysis(
+        analysis_id=analysis_id,
+        input_type=request.input_type,
+        content=request.content,
+        risk_score=risk["risk_score"],
+        risk_level=risk["risk_level"],
+        created_at=response["timestamp"]
+    )
+
+    db.add(analysis_record)
+    db.commit()
+
+    return response
+
+@router.get("/analyses")
+async def get_analyses(db: Session = Depends(get_db)):
+    records = db.query(Analysis).order_by(Analysis.id.desc()).all()
+
+    return {
+        "total": len(records),
+        "analyses": [
+            {
+                "analysis_id": item.analysis_id,
+                "input_type": item.input_type,
+                "input_preview": item.content[:80],
+                "risk_score": item.risk_score,
+                "risk_level": item.risk_level,
+                "created_at": item.created_at
+            }
+            for item in records
+        ]
+    }
+
+
+@router.get("/analyses/{analysis_id}")
+async def get_analysis_by_id(analysis_id: str, db: Session = Depends(get_db)):
+    item = db.query(Analysis).filter(Analysis.analysis_id == analysis_id).first()
+
+    if not item:
+        return {
+            "error": "Analysis not found"
+        }
+
+    return {
+        "analysis_id": item.analysis_id,
+        "input_type": item.input_type,
+        "content": item.content,
+        "risk_score": item.risk_score,
+        "risk_level": item.risk_level,
+        "created_at": item.created_at
     }

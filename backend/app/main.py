@@ -2,7 +2,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.routers import analyze
+from app.models.database import engine
+from app.models.database import Base
 
+Base.metadata.create_all(bind=engine)
 app = FastAPI(
     title="Threat Intelligence Platform",
     version="1.0.0",
