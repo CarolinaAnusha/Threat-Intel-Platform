@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+import json
 
 from app.models.schemas import ExtractIOCRequest, ExtractIOCResponse
 from app.services.ioc_extractor import IOCExtractor
@@ -128,7 +129,8 @@ async def analyze_threat(request: AnalyzeThreatRequest, db: Session = Depends(ge
         content=request.content,
         risk_score=risk["risk_score"],
         risk_level=risk["risk_level"],
-        created_at=response["timestamp"]
+        created_at=response["timestamp"],
+        full_result=json.dumps(response)
     )
 
     db.add(analysis_record)
@@ -164,6 +166,9 @@ async def get_analysis_by_id(analysis_id: str, db: Session = Depends(get_db)):
         return {
             "error": "Analysis not found"
         }
+
+    if item.full_result:
+        return json.loads(item.full_result)
 
     return {
         "analysis_id": item.analysis_id,

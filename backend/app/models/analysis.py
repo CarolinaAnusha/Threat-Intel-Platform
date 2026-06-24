@@ -22,3 +22,5 @@ class Analysis(Base):
     risk_level = Column(String)
 
     created_at = Column(String)
+
+    full_result = Column(Text)

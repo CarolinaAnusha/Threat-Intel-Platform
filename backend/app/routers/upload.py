@@ -1,30 +1,34 @@
-from fastapi import APIRouter
-from fastapi import UploadFile
-from fastapi import File
+from fastapi import APIRouter, UploadFile, File
 
+from app.models.schemas import AnalyzeThreatRequest
+from app.routers.analyze import analyze_threat
+from app.models.database import SessionLocal
 from app.services.file_parser import FileParser
-from app.services.ioc_extractor import IOCExtractor
 
-router = APIRouter(
-    prefix="/api",
-    tags=["Upload"]
-)
+router = APIRouter(prefix="/api", tags=["Upload"])
 
 parser = FileParser()
-extractor = IOCExtractor()
 
 
 @router.post("/analyze/upload")
-async def analyze_upload(
-    file: UploadFile = File(...)
-):
-
+async def analyze_upload(file: UploadFile = File(...)):
     content = parser.parse(file)
 
-    iocs = extractor.extract(content)
+    request = AnalyzeThreatRequest(
+        input_type="file",
+        content=content,
+        options={
+            "mitre_mapping": True,
+            "generate_rules": True,
+            "risk_scoring": True
+        }
+    )
 
-    return {
-        "filename": file.filename,
-        "content_length": len(content),
-        "iocs": iocs
-    }
+    db = SessionLocal()
+
+    try:
+        result = await analyze_threat(request, db)
+        result["filename"] = file.filename
+        return result
+    finally:
+        db.close()
