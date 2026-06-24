@@ -1,5 +1,76 @@
+import json
+
+from app.agents.ai_client import AIClient
+
+
 class ReportWriter:
+    def __init__(self):
+        self.ai_client = AIClient()
+
     def generate(self, content, iocs, enrichment, risk):
+        ai_result = self._generate_with_ai(content, iocs, enrichment, risk)
+
+        if ai_result:
+            return ai_result
+
+        return self._fallback_report(content, iocs, enrichment, risk)
+
+    def _generate_with_ai(self, content, iocs, enrichment, risk):
+        system_prompt = """
+You are an expert SOC analyst and threat intelligence report writer.
+Generate concise, professional, actionable cyber threat intelligence.
+Return ONLY valid JSON.
+Do not include markdown.
+"""
+
+        user_prompt = f"""
+Analyze this threat intelligence context and return JSON with exactly these keys:
+summary, attack_scenario, business_impact, immediate_actions, long_term_remediation, monitoring.
+
+Threat text:
+{content}
+
+Extracted IOCs:
+{json.dumps(iocs, indent=2)}
+
+Enrichment:
+{json.dumps(enrichment, indent=2)}
+
+Risk:
+{json.dumps(risk, indent=2)}
+
+Required JSON format:
+{{
+  "summary": "2-3 sentence overview",
+  "attack_scenario": "step-by-step exploitation scenario",
+  "business_impact": "business consequences",
+  "immediate_actions": ["action1", "action2", "action3", "action4"],
+  "long_term_remediation": ["fix1", "fix2", "fix3", "fix4"],
+  "monitoring": ["watch1", "watch2", "watch3", "watch4"]
+}}
+"""
+
+        result = self.ai_client.generate_json(system_prompt, user_prompt)
+
+        if not result:
+            return None
+
+        required_keys = [
+            "summary",
+            "attack_scenario",
+            "business_impact",
+            "immediate_actions",
+            "long_term_remediation",
+            "monitoring",
+        ]
+
+        for key in required_keys:
+            if key not in result:
+                return None
+
+        return result
+
+    def _fallback_report(self, content, iocs, enrichment, risk):
         cves = enrichment.get("cves", [])
 
         cve_names = [cve["id"] for cve in cves]
@@ -22,9 +93,9 @@ class ReportWriter:
                 "Implement MFA for high-risk user groups.",
                 "Improve email and web filtering controls.",
                 "Maintain a strict patch management SLA for critical CVEs.",
-                "Run phishing awareness and incident response training."
+                "Run phishing awareness and incident response training.",
             ],
-            "monitoring": self._monitoring(domains, ips, malware)
+            "monitoring": self._monitoring(domains, ips, malware),
         }
 
     def _summary(self, risk, cves, malware, actors):
@@ -50,11 +121,13 @@ class ReportWriter:
                 "Successful exploitation could lead to credential theft, unauthorized access, "
                 "ransomware deployment, operational disruption, and regulatory exposure."
             )
+
         if risk["risk_level"] == "high":
             return (
                 "Successful exploitation could cause service disruption, data exposure, "
                 "and increased incident response workload."
             )
+
         return (
             "The current indicators suggest limited impact, but continued monitoring is recommended."
         )
