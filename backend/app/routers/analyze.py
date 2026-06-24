@@ -15,6 +15,7 @@ from fastapi import Depends
 from sqlalchemy.orm import Session
 from app.models.database import SessionLocal
 from app.models.analysis import Analysis
+from app.services.graph_builder import GraphBuilder
 
 def get_db():
     db = SessionLocal()
@@ -31,6 +32,7 @@ risk_scorer = RiskScorer()
 report_writer = ReportWriter()
 detection_engineer = DetectionEngineer()
 mitre_mapper = MITREMapper()
+graph_builder = GraphBuilder()
 
 @router.post("/extract-iocs", response_model=ExtractIOCResponse)
 async def extract_iocs(request: ExtractIOCRequest):
@@ -97,6 +99,10 @@ async def analyze_threat(request: AnalyzeThreatRequest, db: Session = Depends(ge
     risk["risk_level"]
     )
     mitre_mapping = mitre_mapper.map(request.content)
+    relationship_graph = graph_builder.build(
+    iocs,
+    {"cves": enriched_cves}
+    )
     analysis_id = "TI-" + datetime.utcnow().strftime("%Y%m%d%H%M%S")
 
     response = {
@@ -108,6 +114,7 @@ async def analyze_threat(request: AnalyzeThreatRequest, db: Session = Depends(ge
         "cves": enriched_cves
         },
         "mitre_mapping": mitre_mapping,
+        "relationship_graph": relationship_graph,
         "risk_score": risk["risk_score"],
         "risk_level": risk["risk_level"],
         "risk_factors": risk["risk_factors"],
