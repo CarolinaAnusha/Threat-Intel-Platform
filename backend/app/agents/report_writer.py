@@ -25,7 +25,7 @@ Do not include markdown.
 
         user_prompt = f"""
 Analyze this threat intelligence context and return JSON with exactly these keys:
-summary, attack_scenario, business_impact, immediate_actions, long_term_remediation, monitoring.
+summary, analyst_assessment, attack_scenario, business_impact, immediate_actions, long_term_remediation, monitoring.
 
 Threat text:
 {content}
@@ -46,6 +46,7 @@ Required JSON format:
   "business_impact": "business consequences",
   "immediate_actions": ["action1", "action2", "action3", "action4"],
   "long_term_remediation": ["fix1", "fix2", "fix3", "fix4"],
+  "analyst_assessment": "AI analyst confidence and reasoning in 2-3 sentences",
   "monitoring": ["watch1", "watch2", "watch3", "watch4"]
 }}
 """
@@ -61,6 +62,7 @@ Required JSON format:
             "business_impact",
             "immediate_actions",
             "long_term_remediation",
+            "analyst_assessment",
             "monitoring",
         ]
 
@@ -128,6 +130,7 @@ Required JSON format:
                 threat_type,
             ),
             "long_term_remediation": self._long_term_remediation(threat_type, cve_names),
+            "analyst_assessment": self._analyst_assessment(threat_type, risk, domains, ips, cve_names, malware, actors),
             "monitoring": self._monitoring(
                 domains,
                 ips,
@@ -367,3 +370,32 @@ Required JSON format:
             items.append("Monitor for repeated connections, new related domains, and suspicious authentication patterns.")
 
         return items[:6]
+    
+    def _analyst_assessment(self, threat_type, risk, domains, ips, cves, malware, actors):
+        evidence = []
+
+        if domains:
+            evidence.append(f"suspicious domain activity involving {', '.join(domains[:2])}")
+        if ips:
+            evidence.append(f"network communication with {', '.join(ips[:2])}")
+        if cves:
+            evidence.append(f"vulnerability exposure involving {', '.join(cves[:2])}")
+        if malware:
+            evidence.append(f"malware association with {', '.join(sorted(set(malware))[:2])}")
+        if actors:
+            evidence.append(f"possible actor linkage to {', '.join(sorted(set(actors))[:2])}")
+
+        evidence_text = "; ".join(evidence) if evidence else "limited but suspicious indicators"
+
+        return (
+            f"AI assessment: This activity is consistent with {threat_type}. "
+            f"The confidence is {self._confidence_label(risk['risk_score'])} based on {evidence_text}. "
+            f"Recommended priority is {risk['risk_level'].upper()} triage."
+        )
+
+    def _confidence_label(self, score):
+        if score >= 80:
+            return "high"
+        if score >= 50:
+            return "moderate"
+        return "low-to-moderate"
